@@ -12,7 +12,8 @@ interface
 Uses
   Androidapi.JNI.GraphicsContentViewText, Androidapi.JNI.JavaTypes,
   Androidapi.JNI.Net, Androidapi.Helpers, FMX.Helpers.android, System.UITypes,
-  System.UIConsts, System.IOUtils, FMX.Dialogs, System.SysUtils;
+  System.UIConsts, System.IOUtils, FMX.Dialogs, System.SysUtils,
+  Androidapi.JNI.Os;
 
 type
   TTipoFonte = (Normal, Negrito, Italico);
@@ -32,6 +33,7 @@ type
     Procedure GravarPDF();
     Procedure ImpTexto(Linha, Coluna: Integer; Texto: String; TipoFonte: TTipoFonte;
       Color: TAlphaColor; TamFonte: Integer; TpDirecao: TTipoDirecao);
+    procedure OpenPDF(const APDFFileName: string; AExternalURL: Boolean = False);
   public
     property NomeArq: String read FNomeArq write FNomeArq;
     property Pagina: Integer read FPagina write FPagina;
@@ -95,11 +97,7 @@ Var
 Begin
   IntentShare := TJIntent.JavaClass.init(TJIntent.JavaClass.ACTION_SEND);
   Uris        := TJArrayList.Create;
-  if(TFile.Exists(TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf'))Then
-    TFile.Delete(TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf');
-  TFile.Copy(TPath.Combine(TPath.GetDocumentsPath,FNomeArq+'.pdf'),
-    TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf', True);
-  Path:=TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf';
+  Path:=TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf');
   AttFile := TJFile.JavaClass.init(StringToJString(Path));
   Uri     := TJnet_Uri.JavaClass.fromFile(AttFile);
   Uris.add(0,Uri);
@@ -134,13 +132,13 @@ var
   FileName: String;
   OutputStream: JFileOutputStream;
 begin
-  FileName := TPath.Combine(TPath.GetDocumentsPath,FNomeArq+'.pdf');
+  FileName := TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf');
+  if(TFile.Exists(FileName))Then
+    TFile.Delete(FileName);
   OutputStream := TJFileOutputStream.JavaClass.init
     (StringToJString(FileName));
   try
     FDocument.writeTo(OutputStream);
-    if(TFile.exists(FileName))then
-      VisualizarPDF();
   finally
     OutputStream.close;
   end;
@@ -269,25 +267,50 @@ var
   Uri     : Jnet_Uri;
   Path   : string;
 begin
-  if(TFile.Exists(TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf'))Then
-    TFile.Delete(TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf');
-  TFile.Copy(TPath.Combine(TPath.GetDocumentsPath,FNomeArq+'.pdf'),
-    TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf', True);
-  Path:=TPath.GetSharedDownloadsPath+PathDelim+FNomeArq+'.pdf';
-  intent := TJIntent.Create;
-  intent.setAction(TJIntent.JavaClass.ACTION_VIEW);
-  URI := StrToJURI('content://' +Path);
-  intent.setDataAndType(URI,StringToJString('application/pdf'));
-  Intent.setFlags(TJIntent.JavaClass.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-  TAndroidHelper.Activity.startActivity(Intent);
-
-{  Intent := TJIntent.JavaClass.init;
-  Intent.setAction(TJIntent.JavaClass.ACTION_VIEW);
-  Intent.setDataAndType(FileNameToUri(FileName),
-    StringToJString('application/pdf'));
-  Intent.setFlags(TJIntent.JavaClass.FLAG_ACTIVITY_NO_HISTORY or
-    TJIntent.JavaClass.FLAG_ACTIVITY_CLEAR_TOP);
-  SharedActivity.StartActivity(Intent);}
+  if(TFile.Exists(TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf')))Then
+  begin
+    Path:=TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf');
+    if(StrToInt(Copy(trim(JStringToString(TJBuild_VERSION.JavaClass.RELEASE)),0,2)) > 5) then
+    begin
+      intent := TJIntent.Create;
+      intent.setAction(TJIntent.JavaClass.ACTION_VIEW);
+      URI := StrToJURI('content://' +Path);
+      intent.setDataAndType(URI,StringToJString('application/pdf'));
+      Intent.setFlags(TJIntent.JavaClass.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+      TAndroidHelper.Activity.startActivity(Intent);
+    end
+    else
+      OpenPDF(FNomeArq+'.pdf');
+  end
+  else
+    raise Exception.Create('Nenhum arquivo ou diretório encontrado');
 end;
+
+
+procedure tPdfPrint.OpenPDF(const APDFFileName: string; AExternalURL: Boolean);
+var
+  Intent         : JIntent;
+  Filepath       : String;
+  SharedFilePath : string;
+  tmpFile        : String;
+begin
+  if not AExternalURL then
+  begin
+    Filepath       := TPath.Combine(TPath.GetDocumentsPath      , APDFFileName);
+    SharedFilePath := TPath.Combine(TPath.GetSharedDocumentsPath, APDFFileName);
+    if TFile.Exists(SharedFilePath) then
+      TFile.Delete(SharedFilePath);
+    TFile.Copy(Filepath, SharedFilePath);
+  end;
+  Intent := TJIntent.Create;
+  Intent.setAction(TJIntent.JavaClass.ACTION_VIEW);
+  tmpFile := StringReplace(APDFFileName, ' ', '%20', [rfReplaceAll]);
+  if AExternalURL then
+    Intent.setData(StrToJURI(tmpFile))
+  else
+    Intent.setDataAndType(StrToJURI('file://' + SharedFilePath), StringToJString('application/pdf'));
+  SharedActivity.startActivity(Intent);
+end;
+
 
 end.
