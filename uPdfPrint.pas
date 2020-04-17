@@ -13,7 +13,7 @@ Uses
   Androidapi.JNI.GraphicsContentViewText, Androidapi.JNI.JavaTypes,
   Androidapi.JNI.Net, Androidapi.Helpers, FMX.Helpers.android, System.UITypes,
   System.UIConsts, System.IOUtils, FMX.Dialogs, System.SysUtils,
-  Androidapi.JNI.Os;
+  Androidapi.JNI.Os, FMX.Graphics, FMX.Surfaces;
 
 type
   TTipoFonte = (Normal, Negrito, Italico);
@@ -52,6 +52,7 @@ type
     procedure ImpLinhaV(Linha, Coluna, Tamanho: Integer; Color: TAlphaColor);
     procedure ImpBox(Top, Bottom, Left, Right, TamBorda: Integer;
       Color: TAlphaColor);
+    procedure ImpBitmap(Top, Left: Single; ABitmap: TBitmap);
     procedure VisualizarPDF();
     procedure CompartilharPDF();
     procedure NovaPagina();
@@ -164,6 +165,19 @@ procedure tPdfPrint.ImpC(Linha, Coluna: Integer; Texto: String;
   TipoFonte: TTipoFonte; Color: TAlphaColor; TamFonte: Integer);
 begin
   ImpTexto(Linha, coluna, Texto, TipoFonte, Color, TamFonte, tpCenter);
+end;
+
+procedure tPdfPrint.ImpBitmap(Top, Left: Single; ABitmap: TBitmap);
+var
+  NativeBitmap: JBitmap;
+  sBitMap: TBitmapSurface;
+begin
+  NativeBitmap := TJBitmap.JavaClass.createBitmap(ABitmap.Width,
+    ABitmap.Height, TJBitmap_Config.JavaClass.ARGB_8888);
+  sBitMap := TBitmapSurface.create;
+  sBitMap.Assign(ABitmap);
+  SurfaceToJBitmap(sBitMap, NativeBitmap);
+  FCanvas.drawBitmap(NativeBitmap, Top, Left, FPaint);
 end;
 
 procedure tPdfPrint.ImpL(Linha, Coluna: Integer; Texto: String;
