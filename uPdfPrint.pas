@@ -13,7 +13,7 @@ Uses
   Androidapi.JNI.GraphicsContentViewText, Androidapi.JNI.JavaTypes,
   Androidapi.JNI.Net, Androidapi.Helpers, FMX.Helpers.android, System.UITypes,
   System.UIConsts, System.IOUtils, FMX.Dialogs, System.SysUtils,
-  Androidapi.JNI.Os, FMX.Graphics, FMX.Surfaces;
+  Androidapi.JNI.Os, FMX.Graphics, FMX.Surfaces, Androidapi.JNI.Support;
 
 type
   TTipoFonte = (Normal, Negrito, Italico);
@@ -52,7 +52,7 @@ type
     procedure ImpLinhaV(Linha, Coluna, Tamanho: Integer; Color: TAlphaColor);
     procedure ImpBox(Top, Bottom, Left, Right, TamBorda: Integer;
       Color: TAlphaColor);
-    procedure ImpBitmap(Top, Left: Single; ABitmap: TBitmap);
+    procedure ImpImage(Top, Left: Single; Image: TBitmap);
     procedure VisualizarPDF();
     procedure CompartilharPDF();
     procedure NovaPagina();
@@ -167,15 +167,15 @@ begin
   ImpTexto(Linha, coluna, Texto, TipoFonte, Color, TamFonte, tpCenter);
 end;
 
-procedure tPdfPrint.ImpBitmap(Top, Left: Single; ABitmap: TBitmap);
+procedure tPdfPrint.ImpImage(Top, Left: Single; Image: TBitmap);
 var
   NativeBitmap: JBitmap;
   sBitMap: TBitmapSurface;
 begin
-  NativeBitmap := TJBitmap.JavaClass.createBitmap(ABitmap.Width,
-    ABitmap.Height, TJBitmap_Config.JavaClass.ARGB_8888);
+  NativeBitmap := TJBitmap.JavaClass.createBitmap(Image.Width,
+    Image.Height, TJBitmap_Config.JavaClass.ARGB_8888);
   sBitMap := TBitmapSurface.create;
-  sBitMap.Assign(ABitmap);
+  sBitMap.Assign(Image);
   SurfaceToJBitmap(sBitMap, NativeBitmap);
   FCanvas.drawBitmap(NativeBitmap, Top, Left, FPaint);
 end;
@@ -277,20 +277,23 @@ end;
 
 procedure tPdfPrint.VisualizarPDF();
 var
-  Intent  : JIntent;
-  Uri     : Jnet_Uri;
-  Path   : string;
+  Intent    : JIntent;
+  Uri       : Jnet_Uri;
+  LAutority : JString;
+  Path      : string;
 begin
   if(TFile.Exists(TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf')))Then
   begin
     Path:=TPath.Combine(TPath.GetSharedDocumentsPath, FNomeArq+'.pdf');
-    if(StrToInt(Copy(trim(JStringToString(TJBuild_VERSION.JavaClass.RELEASE)),0,2)) > 5) then
+    if(StrToInt(Copy(trim(JStringToString(TJBuild_VERSION.JavaClass.RELEASE)),0,2)) >= 8) then
     begin
-      intent := TJIntent.Create;
-      intent.setAction(TJIntent.JavaClass.ACTION_VIEW);
-      URI := StrToJURI('content://' +Path);
+      LAutority := StringToJString(JStringToString(TAndroidHelper.Context.getApplicationContext.
+        getPackageName)+'.fileprovider');
+      Uri       := TJFileProvider.JavaClass.getUriForFile(TAndroidHelper.Context,
+        LAutority, TJFile.JavaClass.init(StringToJString(Path)));
+      intent    := TJIntent.JavaClass.init(TJIntent.JavaClass.ACTION_VIEW);
       intent.setDataAndType(URI,StringToJString('application/pdf'));
-      Intent.setFlags(TJIntent.JavaClass.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+      Intent.setFlags(TJIntent.JavaClass.FLAG_GRANT_READ_URI_PERMISSION);
       TAndroidHelper.Activity.startActivity(Intent);
     end
     else
