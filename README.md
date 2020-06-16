@@ -7,6 +7,7 @@ Vídeo explicando a usabilidade
 https://www.youtube.com/watch?v=TVedA821_zA&t=22s
 
 ALTERAÇÕES NA VERSÃO
+
 1 – MILIMETROS PARA PIXELS
 Padronizado conforme aos geradores de relatórios e o canvas trabalha, ou seja, convertido de milimetros para pixel, facilitando assim 
 o controle de linhas.
