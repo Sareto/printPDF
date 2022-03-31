@@ -38,8 +38,16 @@ type
       This sample is not about Permissions, please, take a look at some other
       sample to learn more regarding this subject
     }
-    procedure DisplayRationale(Sender: TObject; const APermissions: TClassicStringDynArray; const APostRationaleProc: TProc);
-    procedure GetPermissionRequestResult(Sender: TObject; const APermissions: TClassicStringDynArray; const AGrantResults: TClassicPermissionStatusDynArray);
+    procedure DisplayRationale(
+      Sender: TObject;
+      const APermissions: {$IF CompilerVersion >= 35.0}TClassicStringDynArray{$ELSE}TArray<string>{$ENDIF};
+      const APostRationaleProc: TProc
+      );
+    procedure GetPermissionRequestResult(
+      Sender: TObject;
+      const APermissions: {$IF CompilerVersion >= 35.0}TClassicStringDynArray{$ELSE}TArray<string>{$ENDIF};
+      const AGrantResults: {$IF CompilerVersion >= 35.0}TClassicPermissionStatusDynArray{$ELSE}TArray<TPermissionStatus>{$ENDIF}
+      );
     { Private declarations }
   public
     { Public declarations }
@@ -120,7 +128,8 @@ begin
 end;
 
 procedure TForm1.DisplayRationale(Sender: TObject;
-  const APermissions: TClassicStringDynArray; const APostRationaleProc: TProc);
+  const APermissions: {$IF CompilerVersion >= 35.0}TClassicStringDynArray{$ELSE}TArray<string>{$ENDIF};
+  const APostRationaleProc: TProc);
 begin
   TDialogService.ShowMessage('The permissions are needed',
     procedure(const AResult: TModalResult)
@@ -130,8 +139,9 @@ begin
 end;
 
 procedure TForm1.GetPermissionRequestResult(Sender: TObject;
-const APermissions: TClassicStringDynArray;
-const AGrantResults: TClassicPermissionStatusDynArray);
+  const APermissions: {$IF CompilerVersion >= 35.0}TClassicStringDynArray{$ELSE}TArray<string>{$ENDIF};
+  const AGrantResults: {$IF CompilerVersion >= 35.0}TClassicPermissionStatusDynArray{$ELSE}TArray<TPermissionStatus>{$ENDIF}
+);
 begin
   // 2 permissions involved: CAMERA, READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
   if (Length(AGrantResults) = 2) and

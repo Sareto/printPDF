@@ -222,7 +222,7 @@ begin
     LStrFileProvider := JStringToString
       (TAndroidHelper.context.getApplicationContext.getPackageName) +
       '.fileprovider';
-    Result := {$IF CompilerVersion >= 34.0}TJcontent_FileProvider{$ELSE}TJFileProvider{$ENDIF}.JavaClass.getUriForFile(
+    Result := {$IF CompilerVersion >= 35.0}TJcontent_FileProvider{$ELSE}TJFileProvider{$ENDIF}.JavaClass.getUriForFile(
       TAndroidHelper.context,
       Androidapi.Helpers.StringToJString(LStrFileProvider),
       TJFile.JavaClass.init(StringToJString(aFile))
